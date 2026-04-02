@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Дашборд заказа | ФК Пульс</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://smtpjs.com/v3/smtp.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { background: #f5f7fc; padding: 24px 20px; color: #1a2634; }
+        .dashboard { max-width: 1600px; margin: 0 auto; }
+        
+        /* Header */
+        .brand-header {
+            background: white;
+            border-radius: 24px;
+            padding: 16px 28px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+        .brand-group {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            flex-wrap: wrap;
+        }
+        .logo-puls {
+            height: 90px;
+            width: auto;
+            object-fit: contain;
+        }
+        .partner-logos {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-left: 1px solid #e2e8f0;
+            padding-left: 24px;
+        }
+        .partner-logos img { height: 42px; width: auto; opacity: 0.85; transition: 0.2s; }
+        .partner-logos img:hover { opacity: 1; }
+        .site-link {
+            background: #f0f4f9;
+            padding: 8px 18px;
+            border-radius: 40px;
+            text-decoration: none;
+            color: #1e6f3f;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .site-link:hover { background: #e2e8f0; color: #0f5832; }
+        
+        /* Control bar */
+        .control-bar {
+            background: white;
+            border-radius: 20px;
+            padding: 16px 24px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .url-input-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex: 2;
+            min-width: 300px;
+        }
+        .url-input-group input {
+            flex: 1;
+            padding: 10px 18px;
+            border: 1px solid #cbd5e1;
+            border-radius: 48px;
+            font-size: 0.85rem;
+        }
+        .btn {
+            padding: 8px 20px;
+            border-radius: 40px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            transition: 0.2s;
+        }
+        .btn-primary { background: #1e6f3f; color: white; }
+        .btn-primary:hover { background: #0f5832; }
+        .btn-secondary { background: #eef2ff; color: #1e4663; }
+        .btn-secondary:hover { background: #e2e8f0; }
+        
+        /* Stats */
+        .stats-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 12px 20px;
+            flex: 1;
+            min-width: 180px;
+            border-left: 4px solid #2c6e9e;
+        }
+        .stat-title { font-size: 0.7rem; text-transform: uppercase; color: #5b6e8c; margin-bottom: 4px; }
+        .stat-main { font-size: 1.7rem; font-weight: 700; color: #0f2b3f; }
+        .stat-sub { font-size: 0.7rem; color: #5f7f9a; margin-top: 4px; }
+        
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 20px;
+            border: 1px solid #e9edf2;
+            background: white;
+            max-height: 58vh;
+            overflow-y: auto;
+        }
+        .order-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            min-width: 1200px;
+        }
+        .order-table th {
+            background: #f8fafd;
+            padding: 12px 8px;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+        }
+        .order-table td { padding: 10px 8px; border-bottom: 1px solid #f0f4f9; vertical-align: middle; }
+        .order-table input {
+            padding: 6px 4px;
+            text-align: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            width: 85px;
+        }
+        .row-stock-zero input { background-color: #fee2e2; }
+        .row-stock-positive input { background-color: #e8f5e9; }
+        .product-name { text-align: left; font-weight: 500; }
+        .sort-icon { font-size: 0.65rem; margin-left: 4px; opacity: 0.6; }
+        
+        /* Email selector */
+        .email-select {
+            padding: 8px 16px;
+            border-radius: 40px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 0.85rem;
+            margin-left: 8px;
+        }
+        .action-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="brand-header">
+        <div class="brand-group">
+            <img src="https://raw.githubusercontent.com/reoperator/puls/main/logo_company_968x544_39_puls.jpg" alt="ФК Пульс" class="logo-puls">
+            <div class="partner-logos">
+                <img src="https://raw.githubusercontent.com/reoperator/puls/main/Logo1.png" alt="BIO-FORTE">
+                <img src="https://raw.githubusercontent.com/reoperator/puls/main/Logo3.png" alt="COM-FORTE">
+                <img src="https://raw.githubusercontent.com/reoperator/puls/main/Logo4.png" alt="FOOD-FORTE">
+            </div>
+        </div>
+        <a href="https://pulsforte.ru/" target="_blank" class="site-link"><i class="fas fa-external-link-alt"></i> pulsforte.ru</a>
+    </div>
+
+    <div class="control-bar">
+        <div class="url-input-group">
+            <i class="fas fa-file-excel"></i>
+            <input type="text" id="assortmentUrl" value="https://reoperator.github.io/puls/assorti.xlsx">
+            <button class="btn btn-primary" id="loadAssortmentBtn"><i class="fas fa-cloud-download-alt"></i> Загрузить ассортимент</button>
+        </div>
+        <div class="action-group">
+            <button class="btn btn-secondary" id="resetOrderBtn"><i class="fas fa-eraser"></i> Сбросить</button>
+            <button class="btn btn-secondary" id="exportExcelBtn"><i class="fas fa-file-excel"></i> Выгрузить заказ</button>
+            <i class="fas fa-envelope"></i>
+            <select id="emailSelect" class="email-select">
+                <option value="e.burikina@puls.ru">Елена Бурыкина (e.burikina@puls.ru)</option>
+                <option value="m.borisenko@puls.ru">Борисенко Марина (m.borisenko@puls.ru)</option>
+                <option value="e.smeshnoy_hbr@puls.ru">Смешной Евгений (e.smeshnoy_hbr@puls.ru)</option>
+            </select>
+            <button class="btn btn-primary" id="sendOrderBtn"><i class="fas fa-paper-plane"></i> Отправить заказ</button>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card"><div class="stat-title">📦 КОЛИЧЕСТВО SKU</div><div class="stat-main" id="totalSku">0</div><div class="stat-sub">доступно для заказа</div></div>
+        <div class="stat-card"><div class="stat-title">💰 СУММА ЗАКАЗА</div><div class="stat-main" id="totalSum">0 ₽</div><div class="stat-sub">всего единиц: <span id="totalUnits">0</span> шт</div></div>
+        <div class="stat-card"><div class="stat-title">💳 КАРТОЧНАЯ МОТИВАЦИЯ</div><div class="stat-main" id="cardBonus">0 ₽</div><div class="stat-sub">500₽ / 10 000₽ (зачётная сумма)</div></div>
+    </div>
+
+    <div style="background: white; border-radius: 24px; padding: 0 0 12px 0;">
+        <div style="padding: 16px 24px 0 24px;"><h3><i class="fas fa-table-list"></i> Товары в наличии (исключения скрыты)</h3></div>
+        <div class="table-wrapper">
+            <table class="order-table" id="orderTable">
+                <thead><tr><th data-sort="code">Код <i class="fas fa-sort sort-icon"></i></th><th data-sort="name">Номенклатура <i class="fas fa-sort sort-icon"></i></th><th data-sort="price">Цена (₽) <i class="fas fa-sort sort-icon"></i></th><th data-sort="stock">Остаток <i class="fas fa-sort sort-icon"></i></th><th>Кратность</th><th>Мин.заказ</th><th>Срок годности</th><th>Кол-во</th><th>Сумма (₽)</th></tr></thead>
+                <tbody id="tableBody">叭<td colspan="9">Загрузка ассортимента... </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==================== ВСТРОЕННЫЕ НАСТРОЙКИ SMTP (GMAIL) ====================
+const SMTP_CONFIG = {
+    Host: "smtp.gmail.com",
+    Port: 587,
+    Username: "smeshnoypuls@gmail.com",        // ваш email
+    Password: "ntew ktbx ykuv gvwa",           // пароль приложения
+    From: "smeshnoypuls@gmail.com",
+    FromName: "Дашборд заказа ФК Пульс"
+};
+// =========================================================================
+
+let catalog = [];
+let assortmentLoaded = false;
+let sortField = 'code';
+let sortDirection = 'asc';
+
+const tableBody = document.getElementById('tableBody');
+const totalSkuSpan = document.getElementById('totalSku');
+const totalUnitsSpan = document.getElementById('totalUnits');
+const totalSumSpan = document.getElementById('totalSum');
+const cardBonusSpan = document.getElementById('cardBonus');
+
+function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;': m==='<'?'&lt;':'&gt;'); }
+function formatDate(date) { if (!date) return '—'; if (date instanceof Date) return date.toLocaleDateString(); return new Date(date).toLocaleDateString(); }
+
+function recalcTotals() {
+    let sku = 0, units = 0, sum = 0;
+    catalog.forEach(item => { let q = item.quantity || 0; if (q > 0) { sku++; units += q; sum += item.projPrice * q; } });
+    let card = (sku >= 50 && sum > 0) ? Math.floor(sum / 10000) * 500 : 0;
+    totalSkuSpan.innerText = sku;
+    totalUnitsSpan.innerText = units;
+    totalSumSpan.innerText = sum.toFixed(2) + ' ₽';
+    cardBonusSpan.innerText = card.toFixed(2) + ' ₽';
+}
+
+function sortCatalog() {
+    catalog.sort((a, b) => {
+        let va, vb;
+        if (sortField === 'code') { va = a.code; vb = b.code; }
+        else if (sortField === 'name') { va = a.name; vb = b.name; }
+        else if (sortField === 'price') { va = a.projPrice; vb = b.projPrice; }
+        else if (sortField === 'stock') { va = a.stock; vb = b.stock; }
+        else return 0;
+        if (typeof va === 'string') va = va.toLowerCase();
+        if (typeof vb === 'string') vb = vb.toLowerCase();
+        if (va < vb) return sortDirection === 'asc' ? -1 : 1;
+        if (va > vb) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
+}
+
+function renderTable() {
+    if (!assortmentLoaded) {
+        tableBody.innerHTML = '叭<td colspan="9">Загрузите ассортимент по ссылке. </tbody>';
+        recalcTotals();
+        return;
+    }
+    sortCatalog();
+    let html = '';
+    for (let idx = 0; idx < catalog.length; idx++) {
+        const item = catalog[idx];
+        if (item.stock <= 0) continue; // показываем только товары с остатком >0
+        const qty = item.quantity || 0;
+        const sumPos = (item.projPrice * qty).toFixed(2);
+        const expiryStr = item.expiry ? formatDate(item.expiry) : '—';
+        const rowClass = 'row-stock-positive';
+        html += `<tr data-idx="${idx}" class="${rowClass}">
+            <td>${escapeHtml(item.code)}</td>
+            <td class="product-name">${escapeHtml(item.name)}</td>
+            <td>${item.projPrice.toFixed(2)}</td>
+            <td>${item.stock}</td>
+            <td>${item.multiplicity}</td>
+            <td>${item.minOrder}</td>
+            <td>${expiryStr}</td>
+            <td><input type="number" class="qty-input" value="${qty}" min="0" step="${item.multiplicity}" style="width:85px;"></td>
+            <td class="sum-cell">${sumPos}</td>
+        </tr>`;
+    }
+    tableBody.innerHTML = html;
+    attachEvents();
+    recalcTotals();
+}
+
+function attachEvents() {
+    document.querySelectorAll('#tableBody tr').forEach(row => {
+        const idx = row.getAttribute('data-idx');
+        if (!idx) return;
+        const item = catalog[parseInt(idx)];
+        if (!item) return;
+        const qtyInput = row.querySelector('.qty-input');
+        const sumCell = row.querySelector('.sum-cell');
+        if (qtyInput) {
+            qtyInput.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (isNaN(val)) val = 0;
+                const mult = item.multiplicity || 1;
+                const minOrd = item.minOrder || 1;
+                if (val % mult !== 0) {
+                    let newVal = Math.floor(val / mult) * mult;
+                    if (newVal < minOrd && newVal > 0) newVal = minOrd;
+                    if (newVal < 0) newVal = 0;
+                    if (newVal !== val) val = newVal;
+                }
+                if (val < 0) val = 0;
+                if (val > item.stock) val = item.stock;
+                if (val > 0 && val < minOrd) {
+                    alert(`Минимальный заказ для "${item.name}" = ${minOrd} шт. Установлено ${minOrd}.`);
+                    val = minOrd;
+                    if (val > item.stock) val = item.stock;
+                }
+                item.quantity = val;
+                qtyInput.value = val;
+                const sum = (item.projPrice * val).toFixed(2);
+                if (sumCell) sumCell.innerText = sum;
+                recalcTotals();
+            });
+        }
+    });
+}
+
+// Загрузка исключений и фильтрация
+async function loadExclusionsAndFilter() {
+    const exclusionUrl = "https://reoperator.github.io/puls/minus.xlsx";
+    try {
+        const resp = await fetch(exclusionUrl);
+        if (!resp.ok) throw new Error();
+        const ab = await resp.arrayBuffer();
+        const wb = XLSX.read(ab, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        if (!rows.length) return;
+        const header = rows[0];
+        const idxCode = header.findIndex(cell => String(cell).toLowerCase().includes('код'));
+        if (idxCode === -1) return;
+        const excludeSet = new Set();
+        for (let i = 1; i < rows.length; i++) {
+            let code = rows[i][idxCode] ? String(rows[i][idxCode]).trim() : '';
+            if (code) excludeSet.add(code);
+        }
+        catalog = catalog.filter(item => !excludeSet.has(item.code));
+        assortmentLoaded = true;
+        renderTable();
+        alert(`Ассортимент загружен: ${catalog.length} позиций (исключений скрыто: ${excludeSet.size})`);
+    } catch (e) {
+        console.warn(e);
+        assortmentLoaded = true;
+        renderTable();
+        alert(`Ассортимент загружен: ${catalog.length} позиций (файл исключений не загружен)`);
+    }
+}
+
+// Загрузка основного ассортимента
+async function loadAssortment(url) {
+    try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const ab = await resp.arrayBuffer();
+        const wb = XLSX.read(ab, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        if (!rows.length) throw new Error('Файл пуст');
+        const header = rows[0];
+        const idxCode = header.findIndex(cell => String(cell).toLowerCase().includes('код'));
+        const idxName = header.findIndex(cell => String(cell).toLowerCase().includes('номенклатура'));
+        let idxPrice = header.findIndex(cell => String(cell).toLowerCase().includes('цена с ндс'));
+        if (idxPrice === -1) idxPrice = header.findIndex(cell => String(cell).toLowerCase().includes('цена проекта'));
+        const idxStock = header.findIndex(cell => String(cell).toLowerCase().includes('свободный остаток'));
+        const idxMultiplicity = header.findIndex(cell => String(cell).toLowerCase().includes('кратность заказа'));
+        const idxMinOrder = header.findIndex(cell => String(cell).toLowerCase().includes('минимальный заказ'));
+        const idxExpiry = header.findIndex(cell => String(cell).toLowerCase().includes('срок годности'));
+        if (idxCode === -1 || idxName === -1 || idxPrice === -1 || idxStock === -1)
+            throw new Error('Не найдены обязательные колонки');
+        const newCatalog = [];
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const code = row[idxCode] ? String(row[idxCode]).trim() : '';
+            const name = row[idxName] ? String(row[idxName]).trim() : '';
+            if (!code || !name) continue;
+            let priceRaw = row[idxPrice], price = 0;
+            if (priceRaw !== undefined && priceRaw !== null && priceRaw !== '') {
+                if (typeof priceRaw === 'number') price = priceRaw;
+                else {
+                    let str = String(priceRaw).trim().replace(/\s/g, '').replace(',', '.');
+                    price = parseFloat(str);
+                }
+                if (isNaN(price)) price = 0;
+            }
+            if (price === 0) continue;
+            let stockRaw = row[idxStock], stock = 0;
+            if (stockRaw !== undefined && stockRaw !== null && stockRaw !== '') {
+                if (typeof stockRaw === 'number') stock = stockRaw;
+                else {
+                    let str = String(stockRaw).trim().replace(/\s/g, '').replace(',', '.');
+                    stock = parseFloat(str);
+                }
+                if (isNaN(stock)) stock = 0;
+            }
+            let multiplicity = 1;
+            if (idxMultiplicity !== -1 && row[idxMultiplicity] !== undefined && row[idxMultiplicity] !== '') {
+                let multRaw = row[idxMultiplicity];
+                if (typeof multRaw === 'number') multiplicity = multRaw;
+                else {
+                    let str = String(multRaw).trim().replace(/\s/g, '').replace(',', '.');
+                    let mult = parseFloat(str);
+                    if (!isNaN(mult) && mult > 0) multiplicity = mult;
+                }
+            }
+            let minOrder = 1;
+            if (idxMinOrder !== -1 && row[idxMinOrder] !== undefined && row[idxMinOrder] !== '') {
+                let minRaw = row[idxMinOrder];
+                if (typeof minRaw === 'number') minOrder = minRaw;
+                else {
+                    let str = String(minRaw).trim().replace(/\s/g, '').replace(',', '.');
+                    let mo = parseFloat(str);
+                    if (!isNaN(mo) && mo > 0) minOrder = mo;
+                }
+            }
+            let expiry = null;
+            if (idxExpiry !== -1 && row[idxExpiry] !== undefined && row[idxExpiry] !== '') {
+                let exp = row[idxExpiry];
+                if (exp instanceof Date) expiry = exp;
+                else if (typeof exp === 'string') expiry = new Date(exp);
+            }
+            newCatalog.push({
+                code, name, projPrice: price,
+                stock, multiplicity, minOrder, expiry,
+                quantity: 0
+            });
+        }
+        if (newCatalog.length === 0) throw new Error('Нет валидных записей');
+        catalog = newCatalog;
+        await loadExclusionsAndFilter();
+    } catch (err) {
+        console.error(err);
+        alert(`Ошибка загрузки ассортимента: ${err.message}`);
+    }
+}
+
+// Генерация Excel-файла заказа
+function generateOrderExcel() {
+    const order = catalog.filter(item => item.quantity > 0 && item.stock > 0);
+    if (order.length === 0) return null;
+    const data = [['Код', 'Номенклатура', 'Цена с НДС (₽)', 'Количество', 'Сумма (₽)']];
+    order.forEach(item => {
+        data.push([item.code, item.name, item.projPrice, item.quantity, (item.projPrice * item.quantity).toFixed(2)]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Заказ');
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    return new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+function downloadOrderExcel() {
+    const blob = generateOrderExcel();
+    if (!blob) { alert('Заказ пуст'); return; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `заказ_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+// Отправка письма с вложением через SMTP.js (встроенные учётные данные)
+async function sendOrderEmail() {
+    const toEmail = document.getElementById('emailSelect').value;
+    const subject = `Заказ от ${SMTP_CONFIG.FromName}`;
+    
+    const orderItems = catalog.filter(item => item.quantity > 0 && item.stock > 0);
+    if (orderItems.length === 0) { alert('Заказ пуст.'); return; }
+    
+    const sku = parseInt(totalSkuSpan.innerText);
+    const total = parseFloat(totalSumSpan.innerText.replace(' ₽', ''));
+    const card = cardBonusSpan.innerText;
+    
+    let bodyText = `=== НОВЫЙ ЗАКАЗ ===\n`;
+    bodyText += `Дата: ${new Date().toLocaleString()}\n`;
+    bodyText += `Получатель: ${toEmail}\n`;
+    bodyText += `Количество SKU: ${sku}\n`;
+    bodyText += `Сумма заказа: ${total.toFixed(2)} ₽\n`;
+    bodyText += `Карточная мотивация: ${card} ₽\n\n`;
+    bodyText += `Товары:\n`;
+    orderItems.forEach(item => {
+        bodyText += `${item.code} | ${item.name} | ${item.quantity} шт | сумма ${(item.projPrice * item.quantity).toFixed(2)} ₽\n`;
+    });
+    
+    const excelBlob = generateOrderExcel();
+    if (!excelBlob) return;
+    
+    // Читаем blob как base64
+    const reader = new FileReader();
+    reader.readAsDataURL(excelBlob);
+    reader.onload = function() {
+        const base64Data = reader.result.split(',')[1];
+        const smtpConfig = {
+            Host: SMTP_CONFIG.Host,
+            Port: SMTP_CONFIG.Port,
+            Username: SMTP_CONFIG.Username,
+            Password: SMTP_CONFIG.Password,
+            To: toEmail,
+            From: SMTP_CONFIG.From,
+            FromName: SMTP_CONFIG.FromName,
+            Subject: subject,
+            Body: bodyText,
+            Attachments: [{
+                name: `заказ_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`,
+                data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64Data}`
+            }]
+        };
+        Email.send(smtpConfig)
+            .then(() => alert(`Заказ успешно отправлен на ${toEmail}`))
+            .catch(err => alert(`Ошибка отправки: ${err}`));
+    };
+    reader.onerror = () => alert('Ошибка чтения файла');
+}
+
+function resetOrder() {
+    catalog.forEach(item => { item.quantity = 0; });
+    renderTable();
+}
+
+// Сортировка
+function setupSorting() {
+    const headers = document.querySelectorAll('#orderTable th[data-sort]');
+    headers.forEach(th => {
+        th.addEventListener('click', () => {
+            const field = th.getAttribute('data-sort');
+            if (sortField === field) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortField = field;
+                sortDirection = 'asc';
+            }
+            renderTable();
+            headers.forEach(h => {
+                const icon = h.querySelector('.sort-icon');
+                if (icon) icon.className = 'fas fa-sort sort-icon';
+            });
+            const icon = th.querySelector('.sort-icon');
+            if (icon) icon.className = sortDirection === 'asc' ? 'fas fa-sort-up sort-icon' : 'fas fa-sort-down sort-icon';
+        });
+    });
+}
+
+// Обработчики кнопок
+document.getElementById('loadAssortmentBtn').onclick = () => {
+    const url = document.getElementById('assortmentUrl').value.trim();
+    if (!url) alert('Укажите ссылку');
+    else loadAssortment(url);
+};
+document.getElementById('resetOrderBtn').onclick = resetOrder;
+document.getElementById('exportExcelBtn').onclick = downloadOrderExcel;
+document.getElementById('sendOrderBtn').onclick = sendOrderEmail;
+
+// Автозагрузка при открытии страницы
+window.addEventListener('DOMContentLoaded', () => {
+    setupSorting();
+    const defaultUrl = document.getElementById('assortmentUrl').value;
+    if (defaultUrl) loadAssortment(defaultUrl);
+});
+</script>
+</body>
+</html>
